@@ -1,7 +1,6 @@
 from keras.api.datasets import mnist
 from matplotlib import pyplot
 import numpy as np
-import pandas as pd
 
 # gets training and test data from mnist
 # -> test data is needed to ensure model isn't overfitted to dataset
