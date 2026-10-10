@@ -4,12 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-matplotlib = "*"
-numpy = "*"
-nnfs = "*"
-keras = "*"
-tensorflow = "*"
-pandas = "*"
+matplotlib = "==3.9.2"
+numpy = "==1.26.4"
+keras = "==3.5.0"
+tensorflow = "==2.17.0"
+scipy = "*"
 
 [dev-packages]
 
