@@ -94,13 +94,13 @@ def backwardsPropogation(Z1, A1, Z2, A2, W2, X, Y):
 
     # the derivative for every variable for every neuron
     dW2 = (1 / m) * dZ2.dot(A1.T)
-    db2 = (1 / m) * np.sum(dZ2)
+    db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
 
     # can only apply a change if neuron was activated (relu derivative)
     dZ1 = W2.T.dot(dZ2) * ReLUDerivative(Z1)
 
     dW1 = (1 / m) * dZ1.dot(X.T)
-    db1 = (1 / m) * np.sum(dZ1)
+    db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
 
     return dW1, db1, dW2, db2
 
