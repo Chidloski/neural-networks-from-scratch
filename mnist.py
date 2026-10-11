@@ -69,7 +69,7 @@ def ReLUDerivative(Z):
 
 
 # finds the gradient of all weights, biases, and layers
-def backwardsPropogation(Z1, A1, Z2, A2, W2, X, Y):
+def backwardsPropagation(Z1, A1, Z2, A2, W2, X, Y):
     m = Y.size
     oneHotY = oneHotEncoding(Y)
 
@@ -117,7 +117,7 @@ def gradientDescent(X, Y, iterations, learningRate):
 
     for i in range(iterations):
         Z1, A1, Z2, A2 = forwardPropagation(weights1, biases1, weights2, biases2, X)
-        dW1, db1, dW2, db2 = backwardsPropogation(Z1, A1, Z2, A2, weights2, X, Y)
+        dW1, db1, dW2, db2 = backwardsPropagation(Z1, A1, Z2, A2, weights2, X, Y)
         weights1, biases1, weights2, biases2 = updateParams(weights1, biases1, weights2, biases2, dW1, db1, dW2, db2, learningRate)
 
         if i % 10 == 0:

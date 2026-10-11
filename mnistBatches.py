@@ -71,7 +71,7 @@ def ReLUDerivative(Z):
 
 
 # finds the gradient of all weights, biases, and layers
-def backwardsPropogation(Z1, A1, Z2, A2, W2, X, Y):
+def backwardsPropagation(Z1, A1, Z2, A2, W2, X, Y):
     m = Y.size
     oneHotY = oneHotEncoding(Y)
 
@@ -142,7 +142,7 @@ def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency, seed
 
             Z1, A1, Z2, A2 = forwardPropagation(weights1, biases1, weights2, biases2, X_batch)
             correct += np.sum(getPredictions(A2) == Y_batch)
-            dW1, db1, dW2, db2 = backwardsPropogation(Z1, A1, Z2, A2, weights2, X_batch, Y_batch)
+            dW1, db1, dW2, db2 = backwardsPropagation(Z1, A1, Z2, A2, weights2, X_batch, Y_batch)
             weights1, biases1, weights2, biases2 = updateParams(weights1, biases1, weights2, biases2, dW1, db1, dW2, db2, learningRate)
 
         if i % updateFrequency == 0 or i == epochs - 1:
@@ -213,9 +213,9 @@ def fullTest(W1, W2, b1, b2):
 
 
 def convertToTextLabel(label):
-    type = ["T-Shirt", "Trousers", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle Boot"]
+    labels = ["T-Shirt", "Trousers", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle Boot"]
 
-    return type[int(label)]
+    return labels[int(label)]
 
 
 # <------ MAIN -------->

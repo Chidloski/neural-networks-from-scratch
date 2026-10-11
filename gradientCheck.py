@@ -20,7 +20,7 @@ def threeLayerLoss(w1, b1, w2, b2, w3, b3, X, Y):
 # grads given params for threeLayer
 def threeLayerGradients(w1, b1, w2, b2, w3, b3, X, Y):
     Z1, A1, Z2, A2, Z3, A3 = threeLayer.forwardPropagation(w1, b1, w2, b2, w3, b3, X)
-    return threeLayer.backwardsPropogation(Z1, A1, Z2, A2, w2, Z3, A3, w3, X, Y)
+    return threeLayer.backwardsPropagation(Z1, A1, Z2, A2, w2, Z3, A3, w3, X, Y)
 
 # loss given params for mnistBatches
 def mnistBatchesLoss(w1, b1, w2, b2, X, Y):
@@ -30,7 +30,7 @@ def mnistBatchesLoss(w1, b1, w2, b2, X, Y):
 # grads given params for mnistBatches
 def mnistBatchesGradients(w1, b1, w2, b2, X, Y):
     Z1, A1, Z2, A2 = mnistBatches.forwardPropagation(w1, b1, w2, b2, X)
-    return mnistBatches.backwardsPropogation(Z1, A1, Z2, A2, w2, X, Y)
+    return mnistBatches.backwardsPropagation(Z1, A1, Z2, A2, w2, X, Y)
 
 # loss given params for the cnn, for one image
 def cnnLoss(kW1, kB1, kW2, kB2, fcW, fcB, X, Y):

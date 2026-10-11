@@ -22,15 +22,15 @@ class activationReLU:
 # softmax normalises all outputs whilst skewing negative numbers to minimal positive numbers
 # raises output to the e before dividing by sum of all exponentiated values
 # -> subtracts the largest input from all to avoid raising e to the power of really large number
-# --> thus inputs in the range -infinity to 0, and exponetiated range between 0 and 1
+# --> thus inputs in the range -infinity to 0, and exponentiated range between 0 and 1
 
 # basically creates a probability distribution of inputs
 class activationSoftMax:
     def forward(self, inputs): 
         expOutput = np.exp(inputs - np.max(inputs, axis = 1, keepdims = True))
-        probabilitites = expOutput / np.sum(expOutput, axis = 1, keepdims = True)
+        probabilities = expOutput / np.sum(expOutput, axis = 1, keepdims = True)
 
-        self.output = probabilitites
+        self.output = probabilities
 
 class Loss:
     def calculate(self, output, y):

@@ -98,17 +98,17 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
     for i in range(kWeights1.shape[3]):
         kernel = kWeights1[:, :, :, i]
 
-        map = correlate(X, kernel, mode='valid')
+        featureMap = correlate(X, kernel, mode='valid')
 
-        map = map + kBias1[i]
+        featureMap = featureMap + kBias1[i]
 
-        activatedMap = ReLU(map)
+        activatedMap = ReLU(featureMap)
 
         activatedMap, _ = max_pooling(activatedMap, pool_size = 2, stride = 2)
-        map, mapMask = max_pooling(map, pool_size=2, stride=2)
+        featureMap, mapMask = max_pooling(featureMap, pool_size=2, stride=2)
 
         layer1Mask.append(mapMask)
-        layer1Maps.append(map)
+        layer1Maps.append(featureMap)
         activatedLayer1Maps.append(activatedMap)
 
     layer1Maps = np.stack(layer1Maps, axis = 2)
@@ -121,17 +121,17 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
     for i in range(kWeights2.shape[3]):
         kernel2 = kWeights2[:, :, :, i]
 
-        map = np.zeros((8, 8))
+        featureMap = np.zeros((8, 8))
 
         for j in range(activatedLayer1Maps.shape[2]):
             temp = correlate2d(activatedLayer1Maps[:, :, j, 0], kernel2[:, :, j], mode="valid")
-            map += temp
+            featureMap += temp
 
-        map = map + kBias2[i]
+        featureMap = featureMap + kBias2[i]
 
-        activatedMap = sigmoid(map)
+        activatedMap = sigmoid(featureMap)
 
-        layer2Maps.append(map)
+        layer2Maps.append(featureMap)
         activatedLayer2Maps.append(activatedMap)
 
     layer2Maps = np.stack(layer2Maps, axis = -1)
@@ -164,11 +164,11 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
 
     # gradient of the cross-entropy loss with respect to the fully connected layer
     # -> for softmax followed by cross-entropy this simplifies to the output minus the one-hot label
-    loss = activatedFcLayer - oneHotY
+    dFcLayer = activatedFcLayer - oneHotY
 
-    dFcWeights = np.outer(loss, activatedLayer2Maps.reshape(-1))
-    dFcBias = loss
-    dFlattenedLayer = np.dot(fcWeights.T, loss)
+    dFcWeights = np.outer(dFcLayer, activatedLayer2Maps.reshape(-1))
+    dFcBias = dFcLayer
+    dFlattenedLayer = np.dot(fcWeights.T, dFcLayer)
 
     # reforms layer 2 back to unflattened state
     layer2loss = dFlattenedLayer.reshape(activatedLayer2Maps.shape)
@@ -361,9 +361,9 @@ def loadVariables(filename="cnnVariables.json"):
 
 
 def convertToTextLabel(label):
-    type = ["T-Shirt", "Trousers", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle Boot"]
+    labels = ["T-Shirt", "Trousers", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle Boot"]
 
-    return type[int(label)]
+    return labels[int(label)]
 
 
 # <------ MAIN -------->
