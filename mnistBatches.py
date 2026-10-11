@@ -181,8 +181,8 @@ def testPredictionSingle(index, W1, W2, b1, b2):
     label = test_y[index]
     label = convertToTextLabel(label)
 
-    print(f"Prediction: {prediction}")
-    print(f"Certainty: {certainty}")
+    print(f"Prediction: {convertToTextLabel(prediction[0])}")
+    print(f"Certainty: {certainty.item():.2%}")
     print(f"Label: {label}")
 
     currentImage = currentImage.reshape((28, 28)) * 255
@@ -228,19 +228,19 @@ if __name__ == "__main__":
         print()
 
         if option == 1:
-            epochs = int(input("How many epochs would you like?\n\n"))
+            epochs = int(input("How many epochs would you like (recommended 100)?\n\n"))
             print()
 
-            learningRate = float(input("What would you like the learning rate to be (recommended between 0-0.2)?\n\n"))
+            learningRate = float(input("What would you like the learning rate to be (recommended 0.1)?\n\n"))
             print()
 
-            batchSize = int(input("What would you like the batch size to be (recommended between 64-128)?\n\n"))
+            batchSize = int(input("What would you like the batch size to be (recommended 64)?\n\n"))
             print()
 
             updates = int(input("How often would you like updates (in epochs)?\n\n"))
             print()
 
-            seed = int(input("Enter an integer seed for rng:\n\n"))
+            seed = int(input("What seed would you like to use (0 reproduces the saved weights)?\n\n"))
             print()
 
             weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates, seed)
@@ -263,6 +263,6 @@ if __name__ == "__main__":
 
             else:
                 accuracy, certainty = fullTest(W1, W2, b1, b2)
-                print(f"Neural network has an accuracy of {accuracy * 100}%")
-                print(f"Neural network has an average certainty of {certainty * 100}%")
+                print(f"Neural network has an accuracy of {accuracy:.2%}")
+                print(f"Neural network has an average certainty of {certainty:.2%}")
                 print()

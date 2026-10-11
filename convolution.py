@@ -376,19 +376,19 @@ if __name__ == "__main__":
         print()
 
         if option == 1:
-            rounds = int(input("How many rounds would you like?\n\n"))
+            rounds = int(input("How many rounds would you like (recommended 30)?\n\n"))
             print()
 
             learningRate = float(input("What would you like the learning rate to be (recommended 0.01)?\n\n"))
             print()
 
-            imagesPerRound = int(input("How many randomly chosen images per round (recommended 3000)?\n\n"))
+            imagesPerRound = int(input("How many randomly chosen images per round (60000 makes each round one full pass over the training set)?\n\n"))
             print()
 
             updates = int(input("How often would you like updates (in rounds)?\n\n"))
             print()
 
-            seed = int(input("Please enter a seed for rng:\n\n"))
+            seed = int(input("What seed would you like to use (0 reproduces the saved weights)?\n\n"))
             print()
 
             kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = gradientDescent(train_X, train_y, imagesPerRound=imagesPerRound, rounds=rounds, learningRate=learningRate, updateFrequency=updates, seed=seed)
