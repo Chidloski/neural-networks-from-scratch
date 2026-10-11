@@ -12,7 +12,7 @@ weights = [[0.2, 1.4, 2.9, 30],
            [2, 14, 4.9, 2],
            [34, 1, 4, 5.7]]
 
-# flips weights to make dot product possibel
+# flips weights to make dot product possible
 weights = np.array(weights).T
 
 biases = [2, 3, 4, 5]

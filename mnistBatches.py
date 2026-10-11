@@ -3,8 +3,8 @@ from matplotlib import pyplot
 import numpy as np
 import json
 
-# gets training and test data from mnist
-# -> test data is needed to ensure model isn't overfitted to dataset
+# gets training and test data from fashion-mnist
+# -> the test images are kept separate, to measure how well the network does on images it hasn't trained on
 data = fashion_mnist.load_data()
 
 (train_X, train_y), (test_X, test_y) = data
@@ -15,30 +15,31 @@ train_y = train_y.T
 test_y = test_y.T
 
 
-# assigns a value between -0.5 and 0.5 for the shape
+# random starting weights and biases between -0.5 and 0.5
 def initParams(hiddenUnits=10):
-    # default 10 nodes in layer1, each with 784 weights from previous layer
+    # hiddenUnits nodes in layer1 (10 by default), each with 784 weights from previous layer
     weights1 = np.random.rand(hiddenUnits, 784) - 0.5
 
-    # biases for lyaer 1 neurons
+    # biases for layer 1 neurons
     biases1 = np.random.rand(hiddenUnits, 1) - 0.5
 
-    # 10 nodes in layer2, each with 10 weights from previous layer
+    # 10 nodes in layer2 (one per class), each with hiddenUnits weights from previous layer
     weights2 = np.random.rand(10, hiddenUnits) - 0.5
 
-    # biases for lyaer 2 neurons
+    # biases for layer 2 neurons
     biases2 = np.random.rand(10, 1) - 0.5
 
     return weights1, biases1, weights2, biases2
 
 
-# clips all neuron outputs within the layer below 0
+# sets every negative value to 0
 def ReLU(Z):
     return np.maximum(Z, 0)
 
 
-# raises all neuron outputs to the power of e before taking a mean of this
-# -> creates a probability distribution
+# raises e to the power of each output, then divides by each column's total
+# -> each column (one image) becomes a probability distribution over the 10 classes
+# -> subtracting each column's largest value first stops np.exp overflowing, and doesn't change the result
 def softMax(Z):
     expZ = np.exp(Z - np.max(Z, axis=0, keepdims=True))
     A = expZ / expZ.sum(axis = 0)
@@ -74,10 +75,12 @@ def backwardsPropogation(Z1, A1, Z2, A2, W2, X, Y):
     m = Y.size
     oneHotY = oneHotEncoding(Y)
 
-    # think this calculates the loss as the difference between layer and actual
+    # gradient of the cross-entropy loss with respect to Z2
+    # -> for softmax followed by cross-entropy this simplifies to the predicted probabilities minus the one-hot labels
     dZ2 = A2 - oneHotY
 
-    # the derivative for every variable for every neuron
+    # gradients of layer 2's weights and biases, averaged over the batch
+    # -> each bias sums its own row over the images (axis=1), so every bias gets its own gradient
     dW2 = (1 / m) * dZ2.dot(A1.T)
     db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
 
@@ -90,7 +93,7 @@ def backwardsPropogation(Z1, A1, Z2, A2, W2, X, Y):
     return dW1, db1, dW2, db2
 
 
-# alters the variables with their deriviatives to get them closer to minimum
+# moves each variable a small step against its derivative, towards a minimum of the loss
 def updateParams(W1, b1, W2, b2, dW1, db1, dW2, db2, learningRate):
     W1 = W1 - learningRate * dW1
     W2 = W2 - learningRate * dW2
@@ -105,10 +108,11 @@ def getPredictions(A2):
     return np.argmax(A2, 0)
 
 
-# percentage accuracy of network
+# fraction of predictions that match the labels
 def getAccuracy(predictions, Y):
     return np.sum(predictions == Y) / Y.size
 
+# average probability the network gave to the class it predicted
 def getCertainty(predictions, A2):
 
     return np.mean(A2[predictions, np.arange(len(predictions))])
@@ -131,7 +135,7 @@ def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency, seed
 
         # process a mini-batch
         for startIndex in range(0, m, batchSize):
-            # one index before the next loop
+            # the last batch can be smaller than batchSize
             endIndex = min(startIndex + batchSize, m)
             X_batch = X_shuffled[:, startIndex:endIndex]
             Y_batch = Y_shuffled[startIndex:endIndex]

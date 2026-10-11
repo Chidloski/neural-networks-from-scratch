@@ -4,8 +4,9 @@ import numpy as np
 import json
 from scipy.signal import correlate, correlate2d
 
-# gets training and test data from mnist
-# -> test data is needed to ensure model isn't overfitted to dataset
+# gets training and test data from fashion-mnist
+# -> the test images are kept separate, to measure how well the network does on images it hasn't trained on
+# -> the images stay float64: as float32, scipy's fft convolution would run in single precision
 data = fashion_mnist.load_data()
 
 (train_X, train_y), (test_X, test_y) = data
@@ -17,7 +18,8 @@ train_X = np.expand_dims(train_X, axis=-1)  # Shape becomes (num_images, 28, 28,
 test_X = np.expand_dims(test_X, axis=-1)
 
 
-# assigns a value between -0.5 and 0.5 for the shape
+# random starting weights, scaled by each layer's number of inputs and outputs (glorot initialisation)
+# -> biases start at 0
 def initParams():
     # kWeights has the weights for each position of the first layer's kernels
     # the dimension 9x9x1x2 represents a 9x9 kernel on an input of depth 1, with two separate kernels
@@ -38,7 +40,7 @@ def initParams():
     return kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias
 
 
-# clips all neuron outputs within the layer below 0
+# sets every negative value to 0
 def ReLU(Z):
     return np.maximum(Z, 0)
 
@@ -46,6 +48,8 @@ def ReLU(Z):
 def sigmoid(Z):
     return 1 / (1 + np.exp(-np.clip(Z, -500, 500)))
 
+# keeps the largest value in each 2x2 block, halving the height and width
+# -> also returns a mask with a 1 where each block's largest value was, for the backward pass
 def max_pooling(feature_maps, pool_size=2, stride=2):
     # Get the dimensions of the input feature maps
     height, width, num_channels = feature_maps.shape
@@ -67,20 +71,25 @@ def max_pooling(feature_maps, pool_size=2, stride=2):
                 
                 # Take the maximum value in the pooling window
                 pooled_feature_maps[i // stride, j // stride, c] = np.max(pooling_window)
+                # record where the max was, so the backward pass can send the gradient only there
+                # -> argmax picks exactly one cell even when values tie
                 row, col = np.unravel_index(np.argmax(pooling_window), pooling_window.shape)
                 mask[i + row, j + col, c] = 1
     
     return pooled_feature_maps, mask
 
-# raises all neuron outputs to the power of e before taking a mean of this
-# -> creates a probability distribution
+# raises e to the power of each output, then divides by the total
+# -> gives a probability for each of the 10 classes
+# -> subtracting the largest output first stops np.exp overflowing, and doesn't change the result
 def softMax(Z):
     expZ = np.exp(Z - np.max(Z))
     A =  expZ / expZ.sum(axis = 0)
     return A
 
 
-# Z stands for a layer of neurons and A stands for the activated layer of these neurons
+# runs one image through both convolution layers and the fully connected layer
+# -> 'Maps' are values before the activation function and 'activated' ones are after it
+# -> the masks record where each max-pooling maximum was
 def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, X):
     layer1Maps = []
     layer1Mask = []
@@ -140,6 +149,8 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
     return layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer
 
 
+# works backwards through the network for one image
+# -> names ending in Loss hold the gradient of the loss with respect to that layer, not the loss itself
 def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
                     layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, 
                     fcLayer, activatedFcLayer, X, Y):
@@ -151,7 +162,8 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
     dKWeights2, dKBias2 = np.zeros_like(kWeights2), np.zeros_like(kBias2)
     dFcWeights, dFcBias = np.zeros_like(fcWeights), np.zeros_like(fcBias)
 
-    # calculate loss and derivatives of output layer
+    # gradient of the cross-entropy loss with respect to the fully connected layer
+    # -> for softmax followed by cross-entropy this simplifies to the output minus the one-hot label
     loss = activatedFcLayer - oneHotY
 
     dFcWeights = np.outer(loss, activatedLayer2Maps.reshape(-1))
@@ -161,8 +173,11 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
     # reforms layer 2 back to unflattened state
     layer2loss = dFlattenedLayer.reshape(activatedLayer2Maps.shape)
 
+    # the sigmoid derivative can be applied to the pooled values: sigmoid always increases, so the
+    # largest value before it is in the same cell as the largest value after it
     activatedLayer2Loss = layer2loss * sigmoidDerivative(layer2Maps)
 
+    # spread each pooled gradient over its 2x2 block, then keep it only in the cell that held the maximum
     resizedActivatedLayer2Loss = np.repeat(np.repeat(activatedLayer2Loss, 2, axis=0), 2, axis=1) * layer2Mask
 
     # calculating gradients for layer 2 kernels
@@ -173,19 +188,22 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
             kernelGradient[:, :, j] = correlate2d(activatedLayer1Maps[:, :, j, 0], resizedActivatedLayer2Loss[:, :, i], mode = 'valid')
 
         dKWeights2[:, :, :, i] = kernelGradient
+        # each block passes on exactly one gradient, so the pooled gradients sum to the bias gradient
         dKBias2[i] = np.sum(activatedLayer2Loss[:, :, i])
 
     # calculate gradients and derivatives of layer 1
     layer1Loss = np.zeros((10, 10, 2))
 
-    # calculate loss by layer 1
+    # send the gradient back through the layer 2 kernels: a full correlation with each kernel rotated 180 degrees
     for i in range(kWeights2.shape[3]):
         for j in range(kWeights2.shape[2]):
 
             layer1Loss[:, :, j] += correlate2d(resizedActivatedLayer2Loss[:, :, i], kWeights2[::-1, ::-1, j, i], mode = "full")
 
     # multiply layer 1 by relu derivative to stop applying gradient to unactivated positions
+    # -> as with sigmoid, this works on the pooled values because relu never decreases
     activatedLayer1Loss = layer1Loss * ReLUDerivative(layer1Maps[:, :, :, 0])
+    # as for layer 2, only the cell that held each maximum gets the gradient
     resizedActivatedLayer1Loss = np.repeat(np.repeat(activatedLayer1Loss, 2, axis=0), 2, axis=1) * layer1Mask[:, :, :, 0]
 
     for i in range(kWeights1.shape[3]):
@@ -211,11 +229,13 @@ def ReLUDerivative(Z):
     return Z > 0
 
 
+# derivative of the sigmoid: s(1 - s)
 def sigmoidDerivative(Z):
     sig = sigmoid(Z)
     return sig * (1 - sig)
 
 
+# moves each variable a small step against its derivative, towards a minimum of the loss
 def updateParams(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
                  dkWeights1, dkBias1, dkWeights2, dkBias2, dfcWeights, dfcBias, learningRate):
     
@@ -235,6 +255,9 @@ def getPredictions(A3):
     return np.argmax(A3, 0)
 
 
+# trains on one image at a time; each round uses imagesPerRound randomly chosen training images
+# -> with imagesPerRound = 60000, every round is one full pass (an epoch) over the training set
+# -> the learning rate is multiplied by 0.97 after each round
 def gradientDescent(X, Y, imagesPerRound, learningRate, rounds, updateFrequency, seed):
     np.random.seed(seed)
 
@@ -263,6 +286,7 @@ def gradientDescent(X, Y, imagesPerRound, learningRate, rounds, updateFrequency,
     return kweights1, kbias1, kweights2, kbias2, fcweights, fcbias
 
 
+# accuracy on the given images, and the average certainty on the ones it got right
 def test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, X, y):
     count = 0
     certainty = 0
