@@ -56,8 +56,8 @@ def ReLU(Z):
 # raises all neuron outputs to the power of e before taking a mean of this
 # -> creates a probability distribution
 def softMax(Z):
-    expZ = np.exp(Z - np.max(Z))
-    A =  expZ / expZ.sum(axis = 0)
+    expZ = np.exp(Z - np.max(Z, axis=0, keepdims=True))
+    A = expZ / expZ.sum(axis = 0)
     return A
 
 
@@ -130,7 +130,9 @@ def getCertainty(predictions, A2):
     return np.mean(A2[predictions, np.arange(len(predictions))])
 
 
-def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency):
+def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency, seed=0):
+    np.random.seed(seed)
+
     weights1, biases1, weights2, biases2 = initParams()
     m = X.shape[1]
 
@@ -141,6 +143,8 @@ def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency):
         X_shuffled = X[:, indices]
         Y_shuffled = Y[indices]
 
+        correct = 0
+
         # process a mini-batch
         for startIndex in range(0, m, batchSize):
             # one index before the next loop
@@ -149,12 +153,13 @@ def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency):
             Y_batch = Y_shuffled[startIndex:endIndex]
 
             Z1, A1, Z2, A2 = forwardPropagation(weights1, biases1, weights2, biases2, X_batch)
+            correct += np.sum(getPredictions(A2) == Y_batch)
             dW1, db1, dW2, db2 = backwardsPropogation(Z1, A1, Z2, A2, weights2, X_batch, Y_batch)
             weights1, biases1, weights2, biases2 = updateParams(weights1, biases1, weights2, biases2, dW1, db1, dW2, db2, learningRate)
 
-        if i % updateFrequency == 0:
-            print(f"Iteration: {i}")
-            print(f"Accuracy: {getAccuracy(getPredictions(A2), Y_batch)}")
+        if i % updateFrequency == 0 or i == epochs - 1:
+            print(f"Epoch: {i}")
+            print(f"Accuracy: {correct / m:.2%}")
             print()
     
     return weights1, biases1, weights2, biases2
@@ -255,7 +260,10 @@ if __name__ == "__main__":
             updates = int(input("How often would you like updates (in epochs)?\n\n"))
             print()
 
-            weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates)
+            seed = int(input("Enter an integer seed for rng:\n\n"))
+            print()
+
+            weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates, seed)
             saveVariables(weights1, weights2, biases1, biases2, "variablesRetrained.json")
             print()
 

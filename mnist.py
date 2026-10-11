@@ -55,7 +55,7 @@ def ReLU(Z):
 # raises all neuron outputs to the power of e before taking a mean of this
 # -> creates a probability distribution
 def softMax(Z):
-    expZ = np.exp(Z - np.max(Z))
+    expZ = np.exp(Z - np.max(Z, axis=0, keepdims=True))
     A =  expZ / expZ.sum(axis = 0)
     return A
 
@@ -142,4 +142,8 @@ def gradientDescent(X, Y, iterations, learningRate):
 
 
 if __name__ == "__main__":
+    np.random.seed(0)
     weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, 500, 0.1)
+
+    _, _, _, A2 = forwardPropagation(weights1, biases1, weights2, biases2, test_X)
+    print(f"Test accuracy: {getAccuracy(getPredictions(A2), test_y):.2%}")
