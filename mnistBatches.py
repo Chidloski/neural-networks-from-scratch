@@ -32,15 +32,15 @@ pyplot.show()'''
 
 
 # assigns a value between -0.5 and 0.5 for the shape
-def initParams():
-    # 10 nodes in layer1, each with 784 weights from previous layer
-    weights1 = np.random.rand(10, 784) - 0.5
+def initParams(hiddenUnits=10):
+    # default 10 nodes in layer1, each with 784 weights from previous layer
+    weights1 = np.random.rand(hiddenUnits, 784) - 0.5
 
     # biases for lyaer 1 neurons
-    biases1 = np.random.rand(10, 1) - 0.5
+    biases1 = np.random.rand(hiddenUnits, 1) - 0.5
 
     # 10 nodes in layer2, each with 10 weights from previous layer
-    weights2 = np.random.rand(10, 10) - 0.5
+    weights2 = np.random.rand(10, hiddenUnits) - 0.5
 
     # biases for lyaer 2 neurons
     biases2 = np.random.rand(10, 1) - 0.5
@@ -130,10 +130,10 @@ def getCertainty(predictions, A2):
     return np.mean(A2[predictions, np.arange(len(predictions))])
 
 
-def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency, seed=0):
+def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency, seed=0, hiddenUnits=10):
     np.random.seed(seed)
 
-    weights1, biases1, weights2, biases2 = initParams()
+    weights1, biases1, weights2, biases2 = initParams(hiddenUnits)
     m = X.shape[1]
 
     for i in range(epochs):
