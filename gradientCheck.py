@@ -30,12 +30,12 @@ def mnistBatchesGradients(w1, b1, w2, b2, X, Y):
     return mnistBatches.backwardsPropogation(Z1, A1, Z2, A2, w2, X, Y)
 
 def cnnLoss(kW1, kB1, kW2, kB2, fcW, fcB, X, Y):
-    _, _, _, _, _, aFcLayer = cnn.forwardPropagation(kW1, kB1, kW2, kB2, fcW, fcB, X)
+    _, _, _, _, _, _, _, aFcLayer = cnn.forwardPropagation(kW1, kB1, kW2, kB2, fcW, fcB, X)
     return -np.log(aFcLayer[Y])
 
 def cnnGradients(kW1, kB1, kW2, kB2, fcW, fcB, X, Y):
-    l1Maps, aL1Maps, l2Maps, aL2Maps, fcLayer, aFcLayer = cnn.forwardPropagation(kW1, kB1, kW2, kB2, fcW, fcB, X)
-    return cnn.backPropagation(kW1, kB1, kW2, kB2, fcW, fcB, l1Maps, aL1Maps, l2Maps, aL2Maps, fcLayer, aFcLayer, X, Y)
+    l1Maps, l1Mask, aL1Maps, l2Maps, l2Mask, aL2Maps, fcLayer, aFcLayer = cnn.forwardPropagation(kW1, kB1, kW2, kB2, fcW, fcB, X)
+    return cnn.backPropagation(kW1, kB1, kW2, kB2, fcW, fcB, l1Maps, l1Mask, aL1Maps, l2Maps, l2Mask, aL2Maps, fcLayer, aFcLayer, X, Y)
 
 # numerical gradients made by nudging each parameter
 def numericalGradients(lossFunction, params, X, Y):

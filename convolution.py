@@ -3,16 +3,15 @@ from matplotlib import pyplot
 import numpy as np
 import json
 from scipy.signal import correlate, correlate2d
-from scipy.ndimage import zoom
 
 # gets training and test data from mnist
 # -> test data is needed to ensure model isn't overfitted to dataset
 data = fashion_mnist.load_data()
 
 (train_X, train_y), (test_X, test_y) = data
-train_X = train_X.astype(np.float32) / 255
+train_X = train_X / 255
 
-test_X = test_X.astype(np.float32) / 255
+test_X = test_X / 255
 
 train_X = np.expand_dims(train_X, axis=-1)  # Shape becomes (num_images, 28, 28, 1)
 test_X = np.expand_dims(test_X, axis=-1)
@@ -86,6 +85,7 @@ def max_pooling(feature_maps, pool_size=2, stride=2):
     
     # Initialize the output feature maps
     pooled_feature_maps = np.zeros((out_height, out_width, num_channels))
+    mask = np.zeros_like(feature_maps)
     
     # Perform max pooling for each channel
     for c in range(num_channels):
@@ -96,8 +96,10 @@ def max_pooling(feature_maps, pool_size=2, stride=2):
                 
                 # Take the maximum value in the pooling window
                 pooled_feature_maps[i // stride, j // stride, c] = np.max(pooling_window)
+                row, col = np.unravel_index(np.argmax(pooling_window), pooling_window.shape)
+                mask[i + row, j + col, c] = 1
     
-    return pooled_feature_maps
+    return pooled_feature_maps, mask
 
 # raises all neuron outputs to the power of e before taking a mean of this
 # -> creates a probability distribution
@@ -117,6 +119,7 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
     A3 = softMax(Z3)'''
 
     layer1Maps = []
+    layer1Mask = []
     activatedLayer1Maps = []
 
     for i in range(kWeights1.shape[3]):
@@ -128,13 +131,15 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
 
         activatedMap = ReLU(map)
 
-        activatedMap = max_pooling(activatedMap, pool_size = 2, stride = 2)
-        map = max_pooling(map, pool_size=2, stride=2)
+        activatedMap, _ = max_pooling(activatedMap, pool_size = 2, stride = 2)
+        map, mapMask = max_pooling(map, pool_size=2, stride=2)
 
+        layer1Mask.append(mapMask)
         layer1Maps.append(map)
         activatedLayer1Maps.append(activatedMap)
 
     layer1Maps = np.stack(layer1Maps, axis = 2)
+    layer1Mask = np.stack(layer1Mask, axis=2)
     activatedLayer1Maps = np.stack(activatedLayer1Maps, axis = 2)
 
     #layer1Maps = max_pooling(layer1Maps, pool_size = 2, stride = 2)
@@ -161,8 +166,8 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
     layer2Maps = np.stack(layer2Maps, axis = -1)
     activatedLayer2Maps = np.stack(activatedLayer2Maps, axis = -1)
 
-    layer2Maps = max_pooling(layer2Maps, pool_size=2, stride = 2)
-    activatedLayer2Maps = max_pooling(activatedLayer2Maps, pool_size = 2, stride = 2)
+    layer2Maps, layer2Mask = max_pooling(layer2Maps, pool_size=2, stride = 2)
+    activatedLayer2Maps, _ = max_pooling(activatedLayer2Maps, pool_size = 2, stride = 2)
 
     flattenedLayer2 = activatedLayer2Maps.reshape(-1)
 
@@ -170,7 +175,7 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
 
     activatedFcLayer = softMax(fcLayer)
 
-    return layer1Maps, activatedLayer1Maps, layer2Maps, activatedLayer2Maps, fcLayer, activatedFcLayer
+    return layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer
 
 
 '''kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias = initParams()
@@ -178,7 +183,7 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
 forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, train_X[0, :, :, :])'''
 
 def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
-                    layer1Maps, activatedLayer1Maps, layer2Maps, activatedLayer2Maps, 
+                    layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, 
                     fcLayer, activatedFcLayer, X, Y):
     
     oneHotY = oneHotEncoding(Y).reshape(-1)
@@ -200,7 +205,7 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
 
     activatedLayer2Loss = layer2loss * sigmoidDerivative(layer2Maps)
 
-    resizedActivatedLayer2Loss = zoom(activatedLayer2Loss, zoom = (2.0, 2.0, 1.0), order = 0)
+    resizedActivatedLayer2Loss = np.repeat(np.repeat(activatedLayer2Loss, 2, axis=0), 2, axis=1) * layer2Mask
 
     # calculating gradients for layer 2 kernels
     for i in range(kWeights2.shape[3]):
@@ -223,7 +228,7 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
 
     # multiply layer 1 by relu derivative to stop applying gradient to unactivated positions
     activatedLayer1Loss = layer1Loss * ReLUDerivative(layer1Maps[:, :, :, 0])
-    resizedActivatedLayer1Loss = zoom(activatedLayer1Loss, zoom = (2.0, 2.0, 1.0), order = 0)
+    resizedActivatedLayer1Loss = np.repeat(np.repeat(activatedLayer1Loss, 2, axis=0), 2, axis=1) * layer1Mask[:, :, :, 0]
 
     for i in range(kWeights1.shape[3]):
         kernelGradient = correlate2d(X[:, :, 0], resizedActivatedLayer1Loss[:, :, i], mode="valid")
@@ -354,8 +359,8 @@ def gradientDescent(X, Y, numTests, learningRate, epochs):
         Ysample = Y[sampleIndices]
 
         for i in range(Xsample.shape[0]):
-            layer1Maps, activatedLayer1Maps, layer2Maps, activatedLayer2Maps, fcLayer, activatedFcLayer = forwardPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, Xsample[i, :, :, :])
-            dKWeights1, dKBias1, dKWeights2, dKBias2, dFcWeights, dFcBias = backPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, layer1Maps, activatedLayer1Maps, layer2Maps, activatedLayer2Maps, fcLayer, activatedFcLayer, Xsample[i, :, :, :], Ysample[i])
+            layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer = forwardPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, Xsample[i, :, :, :])
+            dKWeights1, dKBias1, dKWeights2, dKBias2, dFcWeights, dFcBias = backPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer, Xsample[i, :, :, :], Ysample[i])
             kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = updateParams(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, dKWeights1, dKBias1, dKWeights2, dKBias2, dFcWeights, dFcBias, learningRate)
 
             if i % 100 == 0:
@@ -374,7 +379,7 @@ def test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, X, Y):
     for i in range(0, 1000):
         sampleX = X[i, :, :, :]
         sampleY = Y[i]
-        _, _, _, _, _, output = forwardPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, sampleX)
+        _, _, _, _, _, _, _, output = forwardPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, sampleX)
 
         prediction = getPredictions(output)
 
@@ -403,7 +408,7 @@ def saveVariables(W1, W2, W3, b1, b2, b3):
 
 
 def predict(X, W1, W2, W3, b1, b2, b3):
-    _, _, _, _, _, A3 = forwardPropagation(W1, b1, W2, b2, W3, b3, X)
+    _, _, _, _, _, _, _, A3 = forwardPropagation(W1, b1, W2, b2, W3, b3, X)
     predictions = getPredictions(A3)
 
     certainty = A3[predictions]
@@ -444,7 +449,7 @@ def loadVariables():
 
 
 def fullTest(W1, W2, W3, b1, b2, b3):
-    _, _, _, _, _, A3 = forwardPropagation(W1, b1, W2, b2, W3, b3, test_X)
+    _, _, _, _, _, _, _, A3 = forwardPropagation(W1, b1, W2, b2, W3, b3, test_X)
     accuracy = getAccuracy(getPredictions(A3), test_y)
     certainty = getCertainty(getPredictions(A3), A3)
 
