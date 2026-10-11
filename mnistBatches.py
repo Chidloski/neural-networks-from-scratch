@@ -15,22 +15,6 @@ train_y = train_y.T
 test_y = test_y.T
 
 
-m, n = train_X.shape
-
-
-'''print('X_train: ' + str(train_X.shape))
-print('Y_train: ' + str(train_y.shape))
-print('X_test:  '  + str(test_X.shape))
-print('Y_test:  '  + str(test_y.shape))
-
-for i in range(9):  
-    pyplot.subplot(330 + 1 + i)
-    pyplot.imshow(train_X[i], cmap=pyplot.get_cmap('gray'))
-
-
-pyplot.show()'''
-
-
 # assigns a value between -0.5 and 0.5 for the shape
 def initParams(hiddenUnits=10):
     # default 10 nodes in layer1, each with 784 weights from previous layer
@@ -177,10 +161,6 @@ def saveVariables(W1, W2, b1, b2, filename):
         json.dump(data, f, indent = 4)
 
 
-'''weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, 100, 0.1, 64)
-saveVariables(weights1, weights2, biases1, biases2)'''
-
-
 def predict(X, W1, W2, b1, b2):
     _, _, _, A2 = forwardPropagation(W1, b1, W2, b2, X)
     predictions = getPredictions(A2)
@@ -218,10 +198,6 @@ def loadVariables(filename):
     biases2 = np.array(data["b2"])
     
     return weights1, biases1, weights2, biases2
-
-'''W1, b1, W2, b2 = loadVariables()
-
-testPredictionSingle(190, W1, W2, b1, b2)'''
 
 
 def fullTest(W1, W2, b1, b2):

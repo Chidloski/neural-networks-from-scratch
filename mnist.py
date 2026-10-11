@@ -1,5 +1,4 @@
 from keras.api.datasets import mnist
-from matplotlib import pyplot
 import numpy as np
 
 # gets training and test data from mnist
@@ -12,22 +11,6 @@ test_X = test_X.reshape(test_X.shape[0], 784).T / 255
 
 train_y = train_y.T
 test_y = test_y.T
-
-
-m, n = train_X.shape
-
-
-'''print('X_train: ' + str(train_X.shape))
-print('Y_train: ' + str(train_y.shape))
-print('X_test:  '  + str(test_X.shape))
-print('Y_test:  '  + str(test_y.shape))
-
-for i in range(9):  
-    pyplot.subplot(330 + 1 + i)
-    pyplot.imshow(train_X[i], cmap=pyplot.get_cmap('gray'))
-
-
-pyplot.show()'''
 
 
 # assigns a value between -0.5 and 0.5 for the shape

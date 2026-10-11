@@ -17,37 +17,8 @@ train_X = np.expand_dims(train_X, axis=-1)  # Shape becomes (num_images, 28, 28,
 test_X = np.expand_dims(test_X, axis=-1)
 
 
-'''print('X_train: ' + str(train_X.shape))
-print('Y_train: ' + str(train_y.shape))
-print('X_test:  '  + str(test_X.shape))
-print('Y_test:  '  + str(test_y.shape))
-
-for i in range(9):  
-    pyplot.subplot(330 + 1 + i)
-    pyplot.imshow(train_X[i], cmap=pyplot.get_cmap('gray'))
-
-
-pyplot.show()'''
-
-
 # assigns a value between -0.5 and 0.5 for the shape
 def initParams():
-    '''# 10 nodes in layer1, each with 784 weights from previous layer
-    weights1 = np.random.rand(20, 784) - 0.5
-
-    # biases for lyaer 1 neurons
-    biases1 = np.random.rand(20, 1) - 0.5
-
-    # 10 nodes in layer2, each with 10 weights from previous layer
-    weights2 = np.random.rand(20, 20) - 0.5
-
-    # biases for lyaer 2 neurons
-    biases2 = np.random.rand(20, 1) - 0.5
-
-    weights3 = np.random.rand(10, 20) - 0.5
-
-    biases3 = np.random.rand(10, 1) - 0.5'''
-
     # kWeights has the weights for each position of the first layer's kernels
     # the dimension 9x9x1x2 represents a 9x9 kernel on an input of depth 1, with two separate kernels
     kWeights1 = np.random.randn(9, 9, 1, 2) * np.sqrt(2 / (9 * 9 * 1 + 2))
@@ -111,13 +82,6 @@ def softMax(Z):
 
 # Z stands for a layer of neurons and A stands for the activated layer of these neurons
 def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, X):
-    '''Z1 = np.dot(weights1, X) + biases1
-    A1 = ReLU(Z1)
-    Z2 = np.dot(weights2, A1) + biases2
-    A2 = ReLU(Z2)
-    Z3 = np.dot(weights3, A2) + biases3
-    A3 = softMax(Z3)'''
-
     layer1Maps = []
     layer1Mask = []
     activatedLayer1Maps = []
@@ -141,8 +105,6 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
     layer1Maps = np.stack(layer1Maps, axis = 2)
     layer1Mask = np.stack(layer1Mask, axis=2)
     activatedLayer1Maps = np.stack(activatedLayer1Maps, axis = 2)
-
-    #layer1Maps = max_pooling(layer1Maps, pool_size = 2, stride = 2)
 
     layer2Maps = []
     activatedLayer2Maps = []
@@ -177,10 +139,6 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
 
     return layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer
 
-
-'''kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias = initParams()
-
-forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, train_X[0, :, :, :])'''
 
 def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
                     layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, 
@@ -258,40 +216,6 @@ def sigmoidDerivative(Z):
     return sig * (1 - sig)
 
 
-'''# finds the gradient of all weights, biases, and layers
-def backwardsPropogation(Z1, A1, Z2, A2, W2, Z3, A3, W3, X, Y):
-    m = Y.size
-    oneHotY = oneHotEncoding(Y)
-
-    dZ3 = A3 - oneHotY
-    dW3 = (1 / m) * dZ3.dot(A2.T)
-    db3 = (1 / m) * np.sum(dZ3)
-
-    dZ2 = W3.T.dot(dZ3) * ReLUDerivative(Z2)
-    dW2 = (1 / m) * dZ2.dot(A1.T)
-    db2 = (1 / m) * np.sum(dZ2)
-
-    dZ1 = W2.T.dot(dZ2) * ReLUDerivative(Z1)
-    dW1 = (1 / m) * dZ1.dot(X.T)
-    db1 = (1 / m) * np.sum(dZ1)
-
-
-
-    return dW1, db1, dW2, db2, dW3, db3
-
-
-# alters the variables with their deriviatives to get them closer to minimum
-def updateParams(W1, b1, W2, b2, W3, b3, dW1, db1, dW2, db2, dW3, db3, learningRate):
-    W1 = W1 - learningRate * dW1
-    W2 = W2 - learningRate * dW2
-    W3 = W3 - learningRate * dW3
-    b1 = b1 - learningRate * db1
-    b2 = b2 - learningRate * db2
-    b3 = b3 - learningRate * db3
-
-
-    return W1, b1, W2, b2, W3, b3'''
-
 def updateParams(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
                  dkWeights1, dkBias1, dkWeights2, dkBias2, dfcWeights, dfcBias, learningRate):
     
@@ -310,44 +234,6 @@ def updateParams(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
 def getPredictions(A3):
     return np.argmax(A3, 0)
 
-
-# percentage accuracy of network
-def getAccuracy(predictions, Y):
-    return np.sum(predictions == Y) / Y.size
-
-def getCertainty(predictions, A3):
-
-    return np.mean(A3[predictions, np.arange(len(predictions))])
-
-
-'''def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency):
-    weights1, biases1, weights2, biases2, weights3, biases3 = initParams()
-    m = X.shape[1]
-
-    for i in range(epochs):
-        # shuffle data
-        indices = np.arange(m)
-        np.random.shuffle(indices)
-        X_shuffled = X[:, indices]
-        Y_shuffled = Y[indices]
-
-        # process a mini-batch
-        for startIndex in range(0, m, batchSize):
-            # one index before the next loop
-            endIndex = min(startIndex + batchSize, m)
-            X_batch = X_shuffled[:, startIndex:endIndex]
-            Y_batch = Y_shuffled[startIndex:endIndex]
-
-            Z1, A1, Z2, A2, Z3, A3 = forwardPropagation(weights1, biases1, weights2, biases2, weights3, biases3, X_batch)
-            dW1, db1, dW2, db2, dW3, db3 = backwardsPropogation(Z1, A1, Z2, A2, weights2, Z3, A3, weights3, X_batch, Y_batch)
-            weights1, biases1, weights2, biases2, weights3, biases3 = updateParams(weights1, biases1, weights2, biases2, weights3, biases3, dW1, db1, dW2, db2, dW3, db3, learningRate)
-
-        if i % updateFrequency == 0:
-            print(f"Iteration: {i}")
-            print(f"Accuracy: {getAccuracy(getPredictions(A3), Y_batch)}")
-            print()
-    
-    return weights1, biases1, weights2, biases2, weights3, biases3'''
 
 def gradientDescent(X, Y, imagesPerRound, learningRate, rounds, updateFrequency, seed):
     np.random.seed(seed)
@@ -393,10 +279,6 @@ def test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, X, y):
             certainty += output[prediction]
 
     return count / X.shape[0], certainty / count
-
-
-'''kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = gradientDescent(train_X, train_y, 3000, 0.01, 50)
-print(test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, test_X, test_y))'''
 
 
 def saveVariables(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, filename="cnnVariables.json"):

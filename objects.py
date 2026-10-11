@@ -1,15 +1,5 @@
 import numpy as np
-import math
 from dataset import *
-
-# np.random.seed(1)
-
-X = [[0.2, 0.3, 0.4, 0.5],
-     [0.6, 0.7, 0.8, 0.9],
-     [0.2, 0.35, 0.17, 0.89],
-     [0.01, 0.2, 0.44, 0.67]]
-
-
 
 X, y = createData(100, 3)
 
@@ -90,10 +80,4 @@ lossFunction = LossCategoricalCrossEntropy()
 loss = lossFunction.calculate(lastActivation.output, y)
 
 print(loss)
-
-#layer2.forward(layer1.output)
-
-#print(layer2.output)
-
-# exponentiation for softmax
 
