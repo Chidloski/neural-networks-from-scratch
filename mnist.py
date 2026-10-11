@@ -141,4 +141,5 @@ def gradientDescent(X, Y, iterations, learningRate):
     return weights1, biases1, weights2, biases2
 
 
-weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, 500, 0.1)
+if __name__ == "__main__":
+    weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, 500, 0.1)

@@ -234,44 +234,45 @@ def convertToTextLabel(label):
 
 
 # <------ MAIN -------->
-active = True
+if __name__ == "__main__":
+    active = True
 
-while active:
-    print("Options:\n1. Retrain neural network \n2. Single Test \n3. Full Test\n4. Exit \n")
-    option = int(input())
-    print()
-
-    if option == 1:
-        epochs = int(input("How many epochs would you like?\n\n"))
+    while active:
+        print("Options:\n1. Retrain neural network \n2. Single Test \n3. Full Test\n4. Exit \n")
+        option = int(input())
         print()
 
-        learningRate = float(input("What would you like the learning rate to be (recommended between 0-0.2)?\n\n"))
-        print()
-
-        batchSize = int(input("What would you like the batch size to be (recommended between 64-128)?\n\n"))
-        print()
-
-        updates = int(input("How often would you like updates (in epochs)?\n\n"))
-        print()
-
-        weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates)
-        saveVariables(weights1, weights2, biases1, biases2)
-        print()
-
-    elif option == 4:
-        active = False
-
-    else:
-        W1, b1, W2, b2 = loadVariables()
-
-        if option == 2:
-            index = int(input("What index would you like to test?\n\n"))
-
-            testPredictionSingle(index, W1, W2, b1, b2)
+        if option == 1:
+            epochs = int(input("How many epochs would you like?\n\n"))
             print()
+
+            learningRate = float(input("What would you like the learning rate to be (recommended between 0-0.2)?\n\n"))
+            print()
+
+            batchSize = int(input("What would you like the batch size to be (recommended between 64-128)?\n\n"))
+            print()
+
+            updates = int(input("How often would you like updates (in epochs)?\n\n"))
+            print()
+
+            weights1, biases1, weights2, biases2 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates)
+            saveVariables(weights1, weights2, biases1, biases2)
+            print()
+
+        elif option == 4:
+            active = False
 
         else:
-            accuracy, certainty = fullTest(W1, W2, b1, b2)
-            print(f"Neural network has an accuracy of {accuracy * 100}%")
-            print(f"Neural network has an average certainty of {certainty * 100}%")
-            print()
+            W1, b1, W2, b2 = loadVariables()
+
+            if option == 2:
+                index = int(input("What index would you like to test?\n\n"))
+
+                testPredictionSingle(index, W1, W2, b1, b2)
+                print()
+
+            else:
+                accuracy, certainty = fullTest(W1, W2, b1, b2)
+                print(f"Neural network has an accuracy of {accuracy * 100}%")
+                print(f"Neural network has an average certainty of {certainty * 100}%")
+                print()
