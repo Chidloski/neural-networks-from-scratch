@@ -20,21 +20,21 @@ test_X = np.expand_dims(test_X, axis=-1)
 
 # random starting weights, scaled by each layer's number of inputs and outputs (glorot initialisation)
 # -> biases start at 0
-def initParams():
+def initParams(kernels1=2, kernels2=4):
     # kWeights has the weights for each position of the first layer's kernels
-    # the dimension 9x9x1x2 represents a 9x9 kernel on an input of depth 1, with two separate kernels
-    kWeights1 = np.random.randn(9, 9, 1, 2) * np.sqrt(2 / (9 * 9 * 1 + 2))
+    # the dimension 9x9x1xkernels1 represents a 9x9 kernel on an input of depth 1, with kernels1 separate kernels (2 by default)
+    kWeights1 = np.random.randn(9, 9, 1, kernels1) * np.sqrt(2 / (9 * 9 * 1 + kernels1))
     # a single bias is needed for each kernel
-    kBias1 = np.zeros(2)
+    kBias1 = np.zeros(kernels1)
 
-    # this follows the same language as the first layer of kernels although each of the input has depth two
-    # this comes from each filter in the first layer
-    kWeights2 = np.random.randn(3, 3, 2, 4) * np.sqrt(2 / (3 * 3 * 2 + 4))
-    kBias2 = np.zeros(4)
+    # this follows the same language as the first layer of kernels, with kernels2 kernels (4 by default)
+    # although each input has depth kernels1, one for each kernel in the first layer
+    kWeights2 = np.random.randn(3, 3, kernels1, kernels2) * np.sqrt(2 / (3 * 3 * kernels1 + kernels2))
+    kBias2 = np.zeros(kernels2)
 
-    # for the fully connected layer 64 weights are needed for each node
-    # this is because the four 4x4 matrices made by the kernels are flattened to a 1d vector
-    fcWeights = np.random.randn(10, 64) * np.sqrt(2 / (64 + 10))
+    # for the fully connected layer 16 * kernels2 weights are needed for each node (64 by default)
+    # this is because the kernels2 4x4 matrices made by the layer 2 kernels are flattened to a 1d vector
+    fcWeights = np.random.randn(10, 16 * kernels2) * np.sqrt(2 / (16 * kernels2 + 10))
     fcBias = np.zeros(10)
 
     return kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias
@@ -192,7 +192,7 @@ def backPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias,
         dKBias2[i] = np.sum(activatedLayer2Loss[:, :, i])
 
     # calculate gradients and derivatives of layer 1
-    layer1Loss = np.zeros((10, 10, 2))
+    layer1Loss = np.zeros((10, 10, kWeights1.shape[3]))
 
     # send the gradient back through the layer 2 kernels: a full correlation with each kernel rotated 180 degrees
     for i in range(kWeights2.shape[3]):
@@ -258,10 +258,10 @@ def getPredictions(A3):
 # trains on one image at a time; each round uses imagesPerRound randomly chosen training images
 # -> with imagesPerRound = 60000, every round is one full pass (an epoch) over the training set
 # -> the learning rate is multiplied by 0.97 after each round
-def gradientDescent(X, Y, imagesPerRound, learningRate, rounds, updateFrequency, seed):
+def gradientDescent(X, Y, imagesPerRound, learningRate, rounds, updateFrequency, seed, kernels1=2, kernels2=4):
     np.random.seed(seed)
 
-    kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = initParams()
+    kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = initParams(kernels1, kernels2)
 
     for j in range(rounds):
         correct = 0
