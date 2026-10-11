@@ -183,7 +183,7 @@ def gradientDescent(X, Y, epochs, learningRate, batchSize, updateFrequency):
     return weights1, biases1, weights2, biases2, weights3, biases3
 
 
-def saveVariables(W1, W2, W3, b1, b2, b3):
+def saveVariables(W1, W2, W3, b1, b2, b3, filename):
     data = {
         "W1": W1.tolist(),
         "W2": W2.tolist(),
@@ -193,7 +193,7 @@ def saveVariables(W1, W2, W3, b1, b2, b3):
         "b3": b3.tolist()
     }
 
-    with open("threeVariable.json", "w") as f:
+    with open(filename, "w") as f:
         json.dump(data, f, indent = 4)
 
 
@@ -227,8 +227,8 @@ def testPredictionSingle(index, W1, W2, W3, b1, b2, b3):
     pyplot.show()
 
 
-def loadVariables():
-    with open("threeVariable.json", "r") as f:
+def loadVariables(filename):
+    with open(filename, "r") as f:
         data = json.load(f)
     
     # Convert lists back to NumPy arrays
@@ -283,14 +283,16 @@ if __name__ == "__main__":
             print()
 
             weights1, biases1, weights2, biases2, weights3, biases3 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates)
-            saveVariables(weights1, weights2, weights3, biases1, biases2, biases3)
+            saveVariables(weights1, weights2, weights3, biases1, biases2, biases3, "threeVariableRetrained.json")
             print()
 
         elif option == 4:
             active = False
 
         else:
-            W1, b1, W2, b2, W3, b3 = loadVariables()
+            filename = input("What file's weights would you like to load? (threeVariable.json is from the original training)\n\n")
+
+            W1, b1, W2, b2, W3, b3 = loadVariables(filename)
 
             if option == 2:
                 index = int(input("What index would you like to test?\n\n"))
