@@ -349,82 +349,88 @@ def getCertainty(predictions, A3):
     
     return weights1, biases1, weights2, biases2, weights3, biases3'''
 
-def gradientDescent(X, Y, numTests, learningRate, epochs):
+def gradientDescent(X, Y, imagesPerRound, learningRate, rounds, updateFrequency, seed):
+    np.random.seed(seed)
+
     kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = initParams()
 
-    for j in range(epochs):
+    for j in range(rounds):
+        correct = 0
 
-        sampleIndices = np.random.choice(X.shape[0], size = numTests, replace = False)
+        sampleIndices = np.random.choice(X.shape[0], size=imagesPerRound, replace = False)
         Xsample = X[sampleIndices, :, :, :]
         Ysample = Y[sampleIndices]
 
         for i in range(Xsample.shape[0]):
             layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer = forwardPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, Xsample[i, :, :, :])
+            correct += int(getPredictions(activatedFcLayer) == Ysample[i])
             dKWeights1, dKBias1, dKWeights2, dKBias2, dFcWeights, dFcBias = backPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, layer1Maps, layer1Mask, activatedLayer1Maps, layer2Maps, layer2Mask, activatedLayer2Maps, fcLayer, activatedFcLayer, Xsample[i, :, :, :], Ysample[i])
             kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = updateParams(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, dKWeights1, dKBias1, dKWeights2, dKBias2, dFcWeights, dFcBias, learningRate)
 
-            if i % 100 == 0:
-                print(f"\n\n\n<-------- EPOCH {j} ---------->")
-                print(f"running on the {i}th sample\n")
+        if j % updateFrequency == 0 or j == rounds - 1:
+            print(f"Round: {j}")
+            print(f"Accuracy: {correct / imagesPerRound:.2%}")
+            print()
 
         learningRate = learningRate * 0.97
 
     return kweights1, kbias1, kweights2, kbias2, fcweights, fcbias
 
 
-def test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, X, Y):
-
+def test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, X, y):
     count = 0
+    certainty = 0
 
-    for i in range(0, 1000):
+    for i in range(0, X.shape[0]):
         sampleX = X[i, :, :, :]
-        sampleY = Y[i]
+        sampleY = y[i]
         _, _, _, _, _, _, _, output = forwardPropagation(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, sampleX)
 
         prediction = getPredictions(output)
 
         if prediction == sampleY:
             count += 1
+            certainty += output[prediction]
 
-    return count / 1000
+    return count / X.shape[0], certainty / count
 
 
 '''kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = gradientDescent(train_X, train_y, 3000, 0.01, 50)
 print(test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, test_X, test_y))'''
 
 
-def saveVariables(W1, W2, W3, b1, b2, b3):
+def saveVariables(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, filename="cnnVariables.json"):
     data = {
-        "W1": W1.tolist(),
-        "W2": W2.tolist(),
-        "W3": W3.tolist(),
-        "b1": b1.tolist(),
-        "b2": b2.tolist(),
-        "b3": b3.tolist()
+        "kWeights1": kweights1.tolist(),
+        "kWeights2": kweights2.tolist(),
+        "fcWeights": fcweights.tolist(),
+        "kBias1": kbias1.tolist(),
+        "kBias2": kbias2.tolist(),
+        "fcBias": fcbias.tolist()
     }
 
-    with open("threeVariable.json", "w") as f:
+    with open(filename, "w") as f:
         json.dump(data, f, indent = 4)
 
 
-def predict(X, W1, W2, W3, b1, b2, b3):
-    _, _, _, _, _, _, _, A3 = forwardPropagation(W1, b1, W2, b2, W3, b3, X)
-    predictions = getPredictions(A3)
+def predict(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, X):
+    _, _, _, _, _, _, _, AFcLayer = forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, X)
+    predictions = getPredictions(AFcLayer)
 
-    certainty = A3[predictions]
+    certainty = AFcLayer[predictions]
     return predictions, certainty
 
 
-def testPredictionSingle(index, W1, W2, W3, b1, b2, b3):
+def testPredictionSingle(index, kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias):
 
-    currentImage = test_X[:, index, None]
-    prediction, certainty = predict(currentImage, W1, W2, W3, b1, b2, b3)
+    currentImage = test_X[index]
+    prediction, certainty = predict(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, currentImage)
 
     label = test_y[index]
     label = convertToTextLabel(label)
 
-    print(f"Prediction: {prediction}")
-    print(f"Certainty: {certainty}")
+    print(f"Prediction: {convertToTextLabel(prediction)}")
+    print(f"Certainty: {certainty:.2%}")
     print(f"Label: {label}")
 
     currentImage = currentImage.reshape((28, 28)) * 255
@@ -433,27 +439,19 @@ def testPredictionSingle(index, W1, W2, W3, b1, b2, b3):
     pyplot.show()
 
 
-def loadVariables():
-    with open("threeVariable.json", "r") as f:
+def loadVariables(filename="cnnVariables.json"):
+    with open(filename, "r") as f:
         data = json.load(f)
     
     # Convert lists back to NumPy arrays
-    weights1 = np.array(data["W1"])
-    biases1 = np.array(data["b1"])
-    weights2 = np.array(data["W2"])
-    biases2 = np.array(data["b2"])
-    weights3 = np.array(data["W3"])
-    biases3 = np.array(data["b3"])
+    weights1 = np.array(data["kWeights1"])
+    biases1 = np.array(data["kBias1"])
+    weights2 = np.array(data["kWeights2"])
+    biases2 = np.array(data["kBias2"])
+    weights3 = np.array(data["fcWeights"])
+    biases3 = np.array(data["fcBias"])
     
     return weights1, biases1, weights2, biases2, weights3, biases3
-
-
-def fullTest(W1, W2, W3, b1, b2, b3):
-    _, _, _, _, _, _, _, A3 = forwardPropagation(W1, b1, W2, b2, W3, b3, test_X)
-    accuracy = getAccuracy(getPredictions(A3), test_y)
-    certainty = getCertainty(getPredictions(A3), A3)
-
-    return accuracy, certainty
 
 
 def convertToTextLabel(label):
@@ -472,36 +470,39 @@ if __name__ == "__main__":
         print()
 
         if option == 1:
-            epochs = int(input("How many epochs would you like?\n\n"))
+            rounds = int(input("How many rounds would you like?\n\n"))
             print()
 
-            learningRate = float(input("What would you like the learning rate to be (recommended between 0-0.2)?\n\n"))
+            learningRate = float(input("What would you like the learning rate to be (recommended 0.01)?\n\n"))
             print()
 
-            batchSize = int(input("What would you like the batch size to be (recommended between 64-128)?\n\n"))
+            imagesPerRound = int(input("How many randomly chosen images per round (recommended 3000)?\n\n"))
             print()
 
-            updates = int(input("How often would you like updates (in epochs)?\n\n"))
+            updates = int(input("How often would you like updates (in rounds)?\n\n"))
             print()
 
-            weights1, biases1, weights2, biases2, weights3, biases3 = gradientDescent(train_X, train_y, epochs, learningRate, batchSize, updates)
-            saveVariables(weights1, weights2, weights3, biases1, biases2, biases3)
+            seed = int(input("Please enter a seed for rng:\n\n"))
+            print()
+
+            kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = gradientDescent(train_X, train_y, imagesPerRound=imagesPerRound, rounds=rounds, learningRate=learningRate, updateFrequency=updates, seed=seed)
+            saveVariables(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias)
             print()
 
         elif option == 4:
             active = False
 
         else:
-            W1, b1, W2, b2, W3, b3 = loadVariables()
+            kweights1, kbias1, kweights2, kbias2, fcweights, fcbias = loadVariables()
 
             if option == 2:
                 index = int(input("What index would you like to test?\n\n"))
 
-                testPredictionSingle(index, W1, W2, W3, b1, b2, b3)
+                testPredictionSingle(index, kweights1, kbias1, kweights2, kbias2, fcweights, fcbias)
                 print()
 
             else:
-                accuracy, certainty = fullTest(W1, W2, W3, b1, b2, b3)
-                print(f"Neural network has an accuracy of {accuracy * 100}%")
-                print(f"Neural network has an average certainty of {certainty * 100}%")
+                accuracy, certainty = test(kweights1, kbias1, kweights2, kbias2, fcweights, fcbias, test_X, test_y)
+                print(f"Neural network has an accuracy of {accuracy:.2%}")
+                print(f"Neural network has an average certainty (when correct) of {certainty:.2%}")
                 print()
