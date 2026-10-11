@@ -128,7 +128,7 @@ def forwardPropagation(kWeights1, kBias1, kWeights2, kBias2, fcWeights, fcBias, 
 
         activatedMap = ReLU(map)
 
-        activatedMap = max_pooling(map, pool_size = 2, stride = 2)
+        activatedMap = max_pooling(activatedMap, pool_size = 2, stride = 2)
         map = max_pooling(map, pool_size=2, stride=2)
 
         layer1Maps.append(map)
