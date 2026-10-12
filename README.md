@@ -22,7 +22,7 @@ once with each of the seeds 0, 1 and 2, and accuracy is measured on all 10,000 F
 | `mnistBatches.py`, `hiddenUnits=20` | 784-20-10: one hidden layer of 20 ReLU units | 85.4% | 85.2 to 85.8% | not saved |
 | `threeLayer.py` | 784-20-20-10: two hidden layers of 20 ReLU units | 86.1% | 85.7 to 86.4% | `threeVariableRetrained.json`, 86.3% |
 | `convolution.py` | CNN: 2 then 4 convolution kernels and a softmax layer, 890 parameters | 83.4% | 83.0 to 84.1% | `cnnVariables.json`, 83.0% |
-| `convolution.py`, `kernels1=8, kernels2=16` | CNN: 8 then 16 convolution kernels and a softmax layer, 4,394 parameters | 87.8% | 87.6 to 88.4% | not saved |
+| `convolution.py`, `kernels1=8, kernels2=16` | CNN: 8 then 16 convolution kernels and a softmax layer, 4,394 parameters | 87.8% | 87.6 to 88.4% | `cnnVariables8then16.json`, 88.4% |
 
 The fully connected networks were trained for 100 epochs with a learning rate of 0.1 and a batch size of
 64. I didn't record the settings I used in 2024, so these are a reconstruction: they're the values in a
@@ -97,6 +97,11 @@ backpropagation to about 1e-10, the same as the default size. The 8 then 16 runs
 in `convolution.py` with `kernels1=8, kernels2=16`; the menu only trains the default size. Each run took
 about five hours on my laptop, so I've only tried this one bigger size.
 
+The seed 0 weights are in `cnnVariables8then16.json`. The menu only loads `cnnVariables.json`, so to
+test them, pass the file name to `loadVariables`, then pass what it returns to `test` with `test_X` and
+`test_y`. I haven't repeated the five-hour run to confirm that retraining reproduces this file exactly,
+as I did for the others.
+
 ## What's in here
 
 - `neuron.py`, `objects.py`, `dataset.py`: my first experiments, following the sentdex videos. A layer
@@ -120,7 +125,7 @@ about five hours on my laptop, so I've only tried this one bigger size.
   SciPy's `correlate` and `correlate2d` do the convolution sums. I wrote the layer wiring, the max
   pooling and the backward pass myself. Its menu works like the others, and its weights are in
   `cnnVariables.json`. `gradientDescent` takes `kernels1` and `kernels2` to change the number of
-  kernels in each layer.
+  kernels in each layer, and the 8 then 16 weights are in `cnnVariables8then16.json`.
 - `gradientCheck.py`: checks the backward pass of `mnistBatches.py`, `threeLayer.py` and
   `convolution.py`. It works out each gradient a second way, by nudging every parameter up and down and
   measuring the change in the loss, and prints the relative error against backpropagation for each
